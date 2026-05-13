@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer update --prefer-dist --no-interaction --no-progress
+          composer update --prefer-dist --no-interaction --no-progress --no-audit
 
       - name: Execute tests
         run: vendor/bin/phpunit
