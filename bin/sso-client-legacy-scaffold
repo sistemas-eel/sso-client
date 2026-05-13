@@ -1,0 +1,54 @@
+#!/usr/bin/env php
+<?php
+
+use PortalSistemas\SSOClient\Legacy\LegacyScaffoldInstaller;
+
+$autoloadCandidates = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+];
+
+foreach ($autoloadCandidates as $autoloadFile) {
+    if (is_file($autoloadFile)) {
+        require_once $autoloadFile;
+        break;
+    }
+}
+
+if (!class_exists(LegacyScaffoldInstaller::class)) {
+    fwrite(STDERR, "Não foi possível carregar o autoload do Composer.\n");
+    exit(1);
+}
+
+$args = array_slice($_SERVER['argv'] ?? [], 1);
+$target = getcwd() ?: '.';
+$force = false;
+
+foreach ($args as $arg) {
+    if ($arg === '--force') {
+        $force = true;
+        continue;
+    }
+
+    if ($arg === '-h' || $arg === '--help') {
+        echo "Uso: sso-client-legacy-scaffold [diretório] [--force]\n";
+        echo "\n";
+        echo "Gera arquivos básicos para integrar uma aplicação PHP legado ao SSO.\n";
+        echo "Por padrão, escreve no diretório atual e não sobrescreve arquivos existentes.\n";
+        exit(0);
+    }
+
+    $target = $arg;
+}
+
+try {
+    $written = (new LegacyScaffoldInstaller())->install($target, ['force' => $force]);
+} catch (Throwable $e) {
+    fwrite(STDERR, $e->getMessage() . "\n");
+    exit(1);
+}
+
+echo "Scaffold SSO legado criado em: " . rtrim($target, DIRECTORY_SEPARATOR) . "\n";
+foreach ($written as $file) {
+    echo " - " . $file . "\n";
+}

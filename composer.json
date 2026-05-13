@@ -1,0 +1,50 @@
+{
+    "name": "sistemas-eel/sso-client",
+    "description": "Cliente SSO para o Portal de Sistemas",
+    "homepage": "https://github.com/sistemas-eel/sso-client",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Gustavo Eduardo Elias Medeiros",
+            "email": "gustavome@usp.br"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0",
+        "guzzlehttp/guzzle": "^6.0|^7.0"
+    },
+    "require-dev": {
+        "illuminate/support": "^8.0|^9.0|^10.0|^11.0|^12.0",
+        "phpunit/phpunit": "^9.0|^10.0",
+        "orchestra/testbench": "^6.0|^7.0|^8.0|^9.0|^10.0",
+        "mockery/mockery": "^1.0"
+    },
+    "suggest": {
+        "illuminate/support": "Necessário para integração com Laravel (^8.0|^9.0|^10.0|^11.0|^12.0)",
+        "spatie/laravel-permission": "Necessário para sincronizar authorization.permissions do SSO no provider local de permissões do Laravel"
+    },
+    "autoload": {
+        "psr-4": {
+            "PortalSistemas\\SSOClient\\": "src/"
+        },
+        "files": [
+            "src/Legacy/agente.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PortalSistemas\\SSOClient\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/sso-client-legacy-scaffold"
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PortalSistemas\\SSOClient\\Laravel\\SSOClientServiceProvider"
+            ]
+        }
+    }
+}
