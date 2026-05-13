@@ -657,7 +657,6 @@ $request = agente_v1_request_from_globals(array_merge($agenteConfig, [
     $con,
     $schema,
     $operacao['modo_operacao'],
-    $operacao['forcar_preview'],
     $requestId
 ))->handle($request);
 ```
@@ -702,7 +701,6 @@ Use os arquivos `os/api/agente/chamados.php` e `os/api/agente/ChamadosAgenteHand
 - schema dinâmico com campos opcionais e `enum`;
 - validação de `usuario.codpes` e resolução de usuário local;
 - resposta `preview` sem persistência;
-- bloqueio de `persist` quando `forcar_preview` estiver ativo;
 - persistência com `mysqli_prepare`;
 - logs padronizados com `request_id`.
 
@@ -713,7 +711,7 @@ Helpers principais:
 | `agente_guard_http_request()` | Prepara headers JSON, gera `request_id` e valida método, tamanho, JSON e status habilitado |
 | `agente_generate_request_id()` | Gera ou reaproveita `X-Request-Id` |
 | `agente_abort_http_error()` | Responde erro HTTP padronizado antes da autenticação |
-| `agente_resolve_operation_mode()` | Normaliza `modo_operacao` e aplica `forcar_preview` |
+| `agente_resolve_operation_mode()` | Normaliza `modo_operacao` |
 | `agente_v1_request_from_globals()` | Autentica Bearer, valida escopo, envelope v1 e schema dinâmico |
 | `agente_field_error()` | Monta erro de campo no formato padronizado |
 | `agente_abort_payload_invalido()` | Registra log e responde `422` com JSON padronizado |
