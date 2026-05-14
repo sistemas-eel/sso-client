@@ -3,6 +3,7 @@ name: Tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   core-compat:
@@ -27,6 +28,12 @@ jobs:
       - name: Install runtime dependencies only
         run: |
           rm -f composer.lock
+          composer remove --dev \
+            illuminate/support \
+            phpunit/phpunit \
+            orchestra/testbench \
+            mockery/mockery \
+            --no-update --no-interaction
           composer install --no-dev --prefer-dist --no-interaction --no-progress
 
       - name: Validate composer metadata
