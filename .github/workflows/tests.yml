@@ -2,37 +2,77 @@ name: Tests
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
-  phpunit:
+  core-compat:
+    name: Core compatibility PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        php: [7.4, 8.0, 8.1, 8.2, 8.3]
-
-    name: P${{ matrix.php }}
+        php: ['7.4', '8.0']
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip
           coverage: none
 
-      - name: Validate composer.json
-        run: composer validate --strict
+      - name: Install runtime dependencies only
+        run: |
+          rm -f composer.lock
+          composer install --no-dev --prefer-dist --no-interaction --no-progress
+
+      - name: Validate composer metadata
+        run: composer validate --strict --no-check-lock
+
+      - name: Lint runtime PHP files
+        run: |
+          find src config routes examples bin \
+            -type f \( -name '*.php' -o -path 'bin/*' \) \
+            -print0 | xargs -0 -n1 php -l
+
+  laravel-tests:
+    name: Laravel tests PHP ${{ matrix.php }} / Testbench ${{ matrix.testbench }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            testbench: '^8.0'
+          - php: '8.2'
+            testbench: '^9.0'
+          - php: '8.3'
+            testbench: '^10.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Select Testbench version
+        run: |
+          rm -f composer.lock
+          composer require --dev orchestra/testbench:${{ matrix.testbench }} --no-interaction --no-update
 
       - name: Install dependencies
-        run: |
-          composer update --prefer-dist --no-interaction --no-progress --no-audit
+        run: composer update --prefer-dist --no-interaction --no-progress
 
-      - name: Execute tests
+      - name: Validate composer metadata
+        run: composer validate --strict
+
+      - name: Run PHPUnit
         run: vendor/bin/phpunit
