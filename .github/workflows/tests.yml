@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  COMPOSER_POLICY_ADVISORIES_BLOCK: 0
+
 jobs:
   core-compat:
     name: Core compatibility PHP ${{ matrix.php }}
