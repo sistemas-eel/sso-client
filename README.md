@@ -24,7 +24,7 @@ Cliente OAuth2 para integração com o Portal de Sistemas. Funciona com **Larave
 - Guzzle 6.0 ou 7.0
 
 ### Opcional
-- **Laravel**: ^8.0, ^9.0, ^10.0, ^11.0, ^12.0 (para integração automática)
+- **Laravel**: ^8.0, ^9.0, ^10.0, ^11.0, ^12.0, ^13.0 (para integração automática)
 
 ## Instalação
 
