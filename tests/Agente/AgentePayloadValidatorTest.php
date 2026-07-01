@@ -59,6 +59,98 @@ class AgentePayloadValidatorTest extends TestCase
         }
     }
 
+    public function test_requires_payload_version_in_body_for_v2_contract(): void
+    {
+        $payload = $this->validPayload();
+        $payload['acao'] = 'consultar';
+        $payload['dados']['titulo'] = 'Consulta de solicitações';
+        $payload['dados']['descricao'] = 'Consulta de solicitações do usuário.';
+        $payload['dados']['campos'] = ['protocolo' => 'OS-123'];
+
+        $request = AgenteRequest::fromArray($payload, [
+            'X-Agente-Payload-Version' => 'v2',
+            'X-Agente-Schema-Version' => '1',
+        ]);
+
+        try {
+        (new AgentePayloadValidator([
+            'acao' => 'consultar',
+            'payload_version' => 'v2',
+        ]))->validate($request);
+            $this->fail('Expected validation exception.');
+        } catch (AgenteValidationException $e) {
+            $this->assertSame('payload_version', $e->errors()[0]['campo']);
+        }
+    }
+
+    public function test_accepts_payload_version_in_body_for_v2_contract(): void
+    {
+        $payload = $this->validPayload();
+        $payload['acao'] = 'consultar';
+        $payload['payload_version'] = 'v2';
+        $payload['dados']['titulo'] = 'Consulta de solicitações';
+        $payload['dados']['descricao'] = 'Consulta de solicitações do usuário.';
+        $payload['dados']['campos'] = ['protocolo' => 'OS-123'];
+
+        $request = AgenteRequest::fromArray($payload, [
+            'X-Agente-Payload-Version' => 'v2',
+            'X-Agente-Schema-Version' => '1',
+        ]);
+
+            (new AgentePayloadValidator([
+                'acao' => 'consultar',
+                'payload_version' => 'v2',
+            ]))->validate($request);
+
+        $this->assertTrue(true);
+    }
+
+    public function test_accepts_action_from_configured_allowed_list(): void
+    {
+        $payload = $this->validPayload();
+        $payload['acao'] = 'abrir_solicitacao';
+        $payload['payload_version'] = 'v2';
+
+        $request = AgenteRequest::fromArray($payload, [
+            'X-Agente-Payload-Version' => 'v2',
+            'X-Agente-Schema-Version' => '1',
+        ]);
+
+        (new AgentePayloadValidator([
+            'acao' => ['abrir_chamado', 'abrir_solicitacao'],
+            'payload_version' => 'v2',
+            'required_usuario' => ['nome', 'email', 'codpes'],
+        ]))->validate($request);
+
+        $this->assertTrue(true);
+    }
+
+    public function test_accepts_generic_query_payload_without_title_or_description_when_not_required(): void
+    {
+        $payload = $this->validPayload();
+        $payload['acao'] = 'consultar';
+        $payload['payload_version'] = 'v2';
+        unset($payload['dados']['titulo'], $payload['dados']['descricao']);
+        $payload['dados']['campos'] = [
+            'descricao' => 'informática',
+            'limite' => 5,
+        ];
+
+        $request = AgenteRequest::fromArray($payload, [
+            'X-Agente-Payload-Version' => 'v2',
+            'X-Agente-Schema-Version' => '1',
+        ]);
+
+        (new AgentePayloadValidator([
+            'acao' => 'consultar',
+            'payload_version' => 'v2',
+            'required_usuario' => ['nome', 'codpes'],
+            'required_dados' => [],
+        ]))->validate($request);
+
+        $this->assertTrue(true);
+    }
+
     /**
      * @return array<string, mixed>
      */
