@@ -81,9 +81,16 @@ class AgentePayloadValidator
             $this->addError('origem', 'valor_invalido', sprintf('origem deve ser %s.', $expectedOrigem));
         }
 
-        $expectedAcao = $this->stringConfig('acao');
-        if ($expectedAcao !== null && ($payload['acao'] ?? null) !== $expectedAcao) {
-            $this->addError('acao', 'valor_invalido', sprintf('ação deve ser %s.', $expectedAcao));
+        $expectedAcoes = $this->stringListConfig('acao');
+        if ($expectedAcoes === []) {
+            $expectedAcao = $this->stringConfig('acao');
+            if ($expectedAcao !== null) {
+                $expectedAcoes = [$expectedAcao];
+            }
+        }
+
+        if ($expectedAcoes !== [] && ! in_array((string) ($payload['acao'] ?? ''), $expectedAcoes, true)) {
+            $this->addError('acao', 'valor_invalido', sprintf('ação deve ser uma destas: %s.', implode(', ', $expectedAcoes)));
         }
 
         $expectedSchemaVersion = $this->intConfig('schema_version');
