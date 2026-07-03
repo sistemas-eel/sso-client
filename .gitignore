@@ -1,0 +1,9 @@
+/composer.lock
+/vendor/
+/.phpunit.result.cache
+/.phpunit.cache/
+/coverage/
+/composer.phar
+.env
+.env.*
+.DS_Store
