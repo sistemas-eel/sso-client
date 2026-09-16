@@ -6,6 +6,17 @@ O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ## [Unreleased]
 
+## [1.0.0-beta.2] - 2026-09-16
+
+### Adicionado
+
+- Configuração de TTL e quantidade máxima de estados OAuth pendentes na integração Laravel.
+- Testes de logins sobrepostos, callback inválido, replay, expiração, limite e parâmetro malformado.
+
+### Corrigido
+
+- O login Laravel agora preserva múltiplos fluxos OAuth pendentes na mesma sessão, consome somente o `state` validado e mantém compatibilidade de callback com o antigo `oauth_state` durante a atualização.
+
 ## [1.0.0-beta.1] - 2026-07-03
 ### Adicionado
 - Integração básica com o Portal de Sistemas da USP.

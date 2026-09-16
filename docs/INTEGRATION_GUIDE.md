@@ -34,6 +34,9 @@ SSO_SERVER_URL=https://portalsistemas.unidade.usp.br/portal-sistemas
 SSO_CLIENT_ID=seu_client_id
 SSO_CLIENT_SECRET=seu_client_secret
 SSO_REDIRECT_URI=https://seu-sistema.com.br/sso/callback
+# Proteção dos fluxos OAuth pendentes no Laravel
+SSO_OAUTH_STATE_TTL=600
+SSO_OAUTH_STATE_MAX_PENDING=10
 SSO_WEBHOOK_SECRET=seu_webhook_secret
 SSO_SYNC_PERMISSIONS=true
 
@@ -41,6 +44,13 @@ SSO_SYNC_PERMISSIONS=true
 SSO_VERIFY_SSL=true
 # SSO_CA_BUNDLE=/path/to/ca-bundle.crt  # Opcional
 ```
+
+`SSO_OAUTH_STATE_TTL` define por quantos segundos cada `state` de uma tentativa
+Laravel permanece válido. `SSO_OAUTH_STATE_MAX_PENDING` limita quantas
+tentativas podem coexistir na mesma sessão, permitindo autenticações iniciadas
+por abas diferentes sem que uma substitua a outra. Cada callback consome
+somente seu próprio `state` e não remove tentativas válidas quando recebe um
+valor incorreto. Essas opções não alteram o scaffold para PHP legado.
 
 ---
 
@@ -605,9 +615,20 @@ $cache->forget('sso_global_logout_12345');
 
 ### Erro: "OAuth state inválido"
 
-**Causa**: State parameter não corresponde ou expirou.
+**Causas possíveis**:
 
-**Solução**: Verifique se a sessão está sendo mantida corretamente entre requisições.
+- a sessão da aplicação não foi preservada entre login e callback;
+- o callback chegou depois do TTL configurado;
+- o `state` é desconhecido, malformado ou já foi utilizado;
+- uma aba antiga restaurou ou repetiu uma URL de callback.
+
+**Verificações**:
+
+1. confirme cookie, domínio, caminho, HTTPS e armazenamento da sessão;
+2. confira `SSO_OAUTH_STATE_TTL` e o tempo decorrido durante o login;
+3. inicie um novo login em vez de recarregar a URL antiga do callback;
+4. não desabilite a validação de `state`, pois ela protege o callback contra
+   CSRF.
 
 ### Erro: "SSL certificate problem"
 

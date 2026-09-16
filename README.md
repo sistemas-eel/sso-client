@@ -49,10 +49,18 @@ SSO_SERVER_URL=https://portalsistemas.unidade.usp.br/portal-sistemas
 SSO_CLIENT_ID=seu_client_id
 SSO_CLIENT_SECRET=seu_client_secret
 SSO_REDIRECT_URI=https://seu-sistema.com.br/sso/callback
+SSO_OAUTH_STATE_TTL=600
+SSO_OAUTH_STATE_MAX_PENDING=10
 SSO_WEBHOOK_SECRET=seu_webhook_secret
 SSO_VERIFY_SSL=true
 SSO_SYNC_PERMISSIONS=true
 ```
+
+Na integração Laravel, cada tentativa de login mantém seu próprio `state`
+pendente. Por padrão, um `state` vale por 600 segundos e a sessão conserva no
+máximo dez tentativas simultâneas. O callback consome somente o valor que foi
+validado; estados desconhecidos, expirados, malformados ou reutilizados são
+recusados. Ajuste os limites apenas se o fluxo da aplicação realmente exigir.
 
 #### 3. Rotas Disponíveis
 

@@ -2,13 +2,14 @@
 
 namespace SistemasEel\SSOClient\Laravel\Http\Controllers;
 
-use SistemasEel\SSOClient\Core\SSOClient;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use SistemasEel\SSOClient\Core\SSOClient;
+use SistemasEel\SSOClient\Laravel\Support\OAuthStateStore;
 use Spatie\Permission\Models\Permission;
 
 class SSOController extends Controller
@@ -18,9 +19,15 @@ class SSOController extends Controller
     /** @var SSOClient */
     protected $client;
 
-    public function __construct(SSOClient $client)
-    {
+    /** @var OAuthStateStore */
+    private $oauthStates;
+
+    public function __construct(
+        SSOClient $client,
+        OAuthStateStore $oauthStates
+    ) {
         $this->client = $client;
+        $this->oauthStates = $oauthStates;
     }
 
     /**
@@ -29,7 +36,7 @@ class SSOController extends Controller
     public function login()
     {
         $state = Str::random(40);
-        Session::put('oauth_state', $state);
+        $this->oauthStates->issue($state);
 
         return redirect($this->client->getAuthorizationUrl($state));
     }
@@ -39,9 +46,7 @@ class SSOController extends Controller
      */
     public function callback(Request $request)
     {
-        $state = Session::remove('oauth_state');
-
-        if (!$state || $request->state !== $state) {
+        if (! $this->oauthStates->consume($request->input('state'))) {
             abort(403, 'Estado OAuth inválido');
         }
 

@@ -40,6 +40,17 @@ return [
     'redirect_uri' => env('SSO_REDIRECT_URI', env('APP_URL') . '/sso/callback'),
 
     /**
+     * Estados pendentes do fluxo OAuth.
+     *
+     * ttl_seconds: validade de cada state antes do callback.
+     * max_pending: quantidade máxima de logins simultâneos por sessão.
+     */
+    'oauth_state' => [
+        'ttl_seconds' => (int) env('SSO_OAUTH_STATE_TTL', 600),
+        'max_pending' => (int) env('SSO_OAUTH_STATE_MAX_PENDING', 10),
+    ],
+
+    /**
      * Configurações de SSL.
      *
      * verify_ssl: Habilita verificação de certificado SSL (recomendado: true).
