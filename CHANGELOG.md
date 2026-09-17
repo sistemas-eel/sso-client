@@ -6,6 +6,12 @@ O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ## [Unreleased]
 
+## [1.0.0-beta.5] - 2026-09-17
+
+### Corrigido
+
+- Remove a vírgula final da lista `use (...)` da closure de rotas OAuth, restaurando a compatibilidade de sintaxe com PHP 7.4.
+
 ## [1.0.0-beta.4] - 2026-09-17
 
 ### Adicionado

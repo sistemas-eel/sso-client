@@ -22,7 +22,7 @@ $oauthRouteLockWaitSeconds = max(
 Route::middleware(config('sso-client.middleware_group', 'web'))
     ->group(function () use (
         $oauthRouteLockSeconds,
-        $oauthRouteLockWaitSeconds,
+        $oauthRouteLockWaitSeconds
     ) {
         if (config('sso-client.login_route.enabled', true)) {
             $loginPath = '/' . ltrim((string) config('sso-client.login_route.path', '/login'), '/');
