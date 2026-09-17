@@ -7,6 +7,13 @@
 
 Cliente OAuth2 para integração com o Portal de Sistemas. Funciona com **Laravel 8+** e **PHP legado 7.4+**.
 
+> **Primeira integração com Laravel?** Siga o
+> [Guia rápido de integração](docs/GUIA_RAPIDO.md), com configuração passo a
+> passo, checklist de validação e solução dos problemas mais comuns.
+
+Para detalhes avançados, PHP legado e referência completa, consulte o
+[Guia de integração](docs/INTEGRATION_GUIDE.md).
+
 ## Funcionalidades
 
 - **Autenticação OAuth2** - Authorization Code Flow completo
@@ -51,6 +58,8 @@ SSO_CLIENT_SECRET=seu_client_secret
 SSO_REDIRECT_URI=https://seu-sistema.com.br/sso/callback
 SSO_OAUTH_STATE_TTL=600
 SSO_OAUTH_STATE_MAX_PENDING=10
+SSO_OAUTH_ROUTE_LOCK_SECONDS=30
+SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS=30
 SSO_WEBHOOK_SECRET=seu_webhook_secret
 SSO_VERIFY_SSL=true
 SSO_SYNC_PERMISSIONS=true
@@ -61,6 +70,15 @@ pendente. Por padrão, um `state` vale por 600 segundos e a sessão conserva no
 máximo dez tentativas simultâneas. O callback consome somente o valor que foi
 validado; estados desconhecidos, expirados, malformados ou reutilizados são
 recusados. Ajuste os limites apenas se o fluxo da aplicação realmente exigir.
+
+As rotas automáticas de login e callback bloqueiam requisições concorrentes da
+mesma sessão. Isso evita que várias abas restauradas simultaneamente leiam o
+mesmo estado da sessão e sobrescrevam os `state` pendentes umas das outras. Por
+padrão, o bloqueio pode durar até 30 segundos e aguarda até 30 segundos para ser
+adquirido.
+
+O armazenamento de cache configurado no Laravel precisa oferecer locks
+atômicos. Os drivers usuais `database` e `redis` atendem esse requisito.
 
 #### 3. Rotas Disponíveis
 
@@ -91,12 +109,25 @@ use SistemasEel\SSOClient\Laravel\Http\Controllers\SSOController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
-    Route::get('/login', [SSOController::class, 'login'])->name('login');
-    Route::get('/logout', [SSOController::class, 'logout'])->name('logout');
+    Route::get('/login', [SSOController::class, 'login'])
+        ->block(30, 30)
+        ->name('login');
+
+    Route::get('/logout', [SSOController::class, 'logout'])
+        ->name('logout');
 });
 ```
 
 Esse ajuste é especialmente importante quando já existe outra biblioteca registrando `/login` ou `/logout`, como ocorre com integrações SSO antigas ou pacotes Socialite customizados.
+
+A rota `sso.callback` continua sendo registrada automaticamente pela
+biblioteca, já com bloqueio de sessão. Só a redeclare se a aplicação precisar
+sobrescrevê-la; nesse caso, aplique também `->block(30, 30)`.
+
+Ao sobrescrever manualmente `login` ou `sso.callback`, preserve o bloqueio de
+sessão. Sem ele, requisições realmente concorrentes da mesma sessão podem
+perder atualizações, mesmo que a aplicação aceite vários estados OAuth
+pendentes.
 
 #### 4. Adicionar Middleware de Sessão (Obrigatório em Produção)
 

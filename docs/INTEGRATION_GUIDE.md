@@ -23,7 +23,7 @@ composer require sistemas-eel/sso-client
 
 - **PHP**: 7.4 ou superior
 - **Guzzle**: ^6.0 ou ^7.0
-- **Laravel** (opcional): ^8.0, ^9.0, ^10.0, ^11.0, ^12.0
+- **Laravel** (opcional): ^8.0, ^9.0, ^10.0, ^11.0, ^12.0, ^13.0
 
 ### Configuração de Variáveis de Ambiente
 
@@ -37,6 +37,8 @@ SSO_REDIRECT_URI=https://seu-sistema.com.br/sso/callback
 # Proteção dos fluxos OAuth pendentes no Laravel
 SSO_OAUTH_STATE_TTL=600
 SSO_OAUTH_STATE_MAX_PENDING=10
+SSO_OAUTH_ROUTE_LOCK_SECONDS=30
+SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS=30
 SSO_WEBHOOK_SECRET=seu_webhook_secret
 SSO_SYNC_PERMISSIONS=true
 
@@ -51,6 +53,16 @@ tentativas podem coexistir na mesma sessão, permitindo autenticações iniciada
 por abas diferentes sem que uma substitua a outra. Cada callback consome
 somente seu próprio `state` e não remove tentativas válidas quando recebe um
 valor incorreto. Essas opções não alteram o scaffold para PHP legado.
+
+`SSO_OAUTH_ROUTE_LOCK_SECONDS` define por quanto tempo o lock da sessão pode
+permanecer adquirido. `SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS` define quanto uma
+requisição aguarda esse lock.
+
+As rotas automáticas de login e callback usam esse bloqueio para serializar
+requisições da mesma sessão. Isso impede que várias abas restauradas
+simultaneamente leiam e sobrescrevam a mesma coleção de estados pendentes. O
+driver de cache do Laravel precisa oferecer locks atômicos; `database` e
+`redis` são opções usuais.
 
 ---
 
@@ -95,12 +107,20 @@ use SistemasEel\SSOClient\Laravel\Http\Controllers\SSOController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
-    Route::get('/login', [SSOController::class, 'login'])->name('login');
-    Route::get('/logout', [SSOController::class, 'logout'])->name('logout');
+    Route::get('/login', [SSOController::class, 'login'])
+        ->block(30, 30)
+        ->name('login');
+
+    Route::get('/logout', [SSOController::class, 'logout'])
+        ->name('logout');
 });
 ```
 
 Esse cenário costuma acontecer quando já existe outra biblioteca registrando `/login` ou `/logout`, como pacotes SSO anteriores ou integrações Socialite personalizadas.
+
+A rota `sso.callback` permanece registrada automaticamente pelo pacote, já com
+bloqueio. Se a aplicação também precisar sobrescrevê-la, preserve
+`->block(30, 30)` na definição manual.
 
 ### 4. Middleware de Sessão (Obrigatório em Produção)
 
@@ -621,6 +641,9 @@ $cache->forget('sso_global_logout_12345');
 - o callback chegou depois do TTL configurado;
 - o `state` é desconhecido, malformado ou já foi utilizado;
 - uma aba antiga restaurou ou repetiu uma URL de callback.
+- rotas de login ou callback sobrescritas manualmente sem bloqueio de sessão;
+- requisições realmente concorrentes da mesma sessão sobrescreveram estados
+  pendentes em uma versão antiga do pacote.
 
 **Verificações**:
 
@@ -629,6 +652,8 @@ $cache->forget('sso_global_logout_12345');
 3. inicie um novo login em vez de recarregar a URL antiga do callback;
 4. não desabilite a validação de `state`, pois ela protege o callback contra
    CSRF.
+5. confira se rotas manuais de login e callback usam `->block(30, 30)`;
+6. use uma versão do pacote que proteja as rotas OAuth contra concorrência.
 
 ### Erro: "SSL certificate problem"
 

@@ -6,6 +6,24 @@ O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ## [Unreleased]
 
+## [1.0.0-beta.3] - 2026-09-17
+
+### Adicionado
+
+- Bloqueio configurável das rotas OAuth de login e callback para serializar requisições concorrentes da mesma sessão.
+- Variáveis `SSO_OAUTH_ROUTE_LOCK_SECONDS` e `SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS`, ambas com padrão de 30 segundos.
+- Testes das durações padrão e personalizadas do bloqueio das rotas.
+- Guia rápido de integração Laravel com roteiro inicial, checklist e solução dos problemas mais comuns.
+
+### Corrigido
+
+- Evita perda de estados OAuth pendentes quando várias abas da mesma sessão iniciam ou concluem autenticações simultaneamente.
+
+### Documentação
+
+- README e guia técnico agora explicam a diferença entre múltiplos estados pendentes e bloqueio de concorrência.
+- Rotas OAuth sobrescritas manualmente devem preservar o bloqueio de sessão.
+
 ## [1.0.0-beta.2] - 2026-09-16
 
 ### Adicionado

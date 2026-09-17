@@ -44,10 +44,20 @@ return [
      *
      * ttl_seconds: validade de cada state antes do callback.
      * max_pending: quantidade máxima de logins simultâneos por sessão.
+     * route_lock_seconds: duração máxima do bloqueio da sessão.
+     * route_lock_wait_seconds: espera máxima para adquirir o bloqueio.
      */
     'oauth_state' => [
         'ttl_seconds' => (int) env('SSO_OAUTH_STATE_TTL', 600),
         'max_pending' => (int) env('SSO_OAUTH_STATE_MAX_PENDING', 10),
+        'route_lock_seconds' => (int) env(
+            'SSO_OAUTH_ROUTE_LOCK_SECONDS',
+            30,
+        ),
+        'route_lock_wait_seconds' => (int) env(
+            'SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS',
+            30,
+        ),
     ],
 
     /**

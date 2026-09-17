@@ -35,4 +35,21 @@ class LaravelLoginRouteTest extends TestCase
 
         $response->assertRedirect('/');
     }
+
+    public function test_oauth_routes_block_concurrent_requests_from_same_session(): void
+    {
+        $routes = Route::getRoutes();
+
+        $login = $routes->getByName('login');
+        $callback = $routes->getByName('sso.callback');
+
+        $this->assertNotNull($login);
+        $this->assertNotNull($callback);
+
+        $this->assertSame(30, $login->locksFor());
+        $this->assertSame(30, $login->waitsFor());
+
+        $this->assertSame(30, $callback->locksFor());
+        $this->assertSame(30, $callback->waitsFor());
+    }
 }
