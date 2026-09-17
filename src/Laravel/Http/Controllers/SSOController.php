@@ -46,7 +46,11 @@ class SSOController extends Controller
      */
     public function callback(Request $request)
     {
-        if (! $this->oauthStates->consume($request->input('state'))) {
+        $oauthState = $this->oauthStates->consume(
+            $request->input('state'),
+        );
+
+        if ($oauthState === null) {
             abort(403, 'Estado OAuth inválido');
         }
 
@@ -105,7 +109,12 @@ class SSOController extends Controller
         Session::put('client_permissions', $permissions);
         Session::put('client_authorization', $authorization);
 
-        return redirect()->intended(config('sso-client.home_path', '/home'));
+        Session::forget('url.intended');
+
+        return redirect()->to(
+            $oauthState->intendedUrl()
+                ?? (string) config('sso-client.home_path', '/home'),
+        );
     }
 
     /**

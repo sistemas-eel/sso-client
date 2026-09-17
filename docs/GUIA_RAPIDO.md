@@ -53,6 +53,10 @@ Antes de prosseguir, confirme também que:
 - sessão e cache do Laravel estão funcionando;
 - o driver de cache oferece locks atômicos, como `database` ou `redis`.
 
+Em ambientes com mais de uma instância da aplicação, todas devem usar o mesmo
+cache compartilhado. Limpar o cache durante uma autenticação invalida apenas o
+fluxo pendente; o usuário precisará iniciar o login novamente.
+
 ## 2. Instale o pacote
 
 Na raiz da aplicação Laravel, execute:
@@ -88,6 +92,7 @@ SSO_REDIRECT_URI=https://seu-sistema.exemplo.br/sso/callback
 SSO_WEBHOOK_SECRET=segredo-compartilhado-do-webhook
 
 SSO_VERIFY_SSL=true
+SESSION_SECURE_COOKIE=true
 SSO_SYNC_PERMISSIONS=false
 
 SSO_OAUTH_STATE_TTL=600
@@ -96,9 +101,17 @@ SSO_OAUTH_ROUTE_LOCK_SECONDS=30
 SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS=30
 ```
 
-Use `SSO_SYNC_PERMISSIONS=false` no primeiro teste se a aplicação ainda não
-usa `spatie/laravel-permission`. Isso não impede a autenticação. A integração
-de permissões pode ser habilitada depois.
+Cada tentativa de login cria um registro temporário no cache e um cookie
+HTTP-only exclusivo. Esse vínculo permite concluir o callback mesmo que outra
+aba já tenha regenerado a sessão do Laravel. O destino original também fica
+associado ao fluxo, para que cada aba retorne à sua própria página.
+
+O estado é descartado após o primeiro uso ou ao atingir o TTL. O cookie sozinho
+não é suficiente: o registro correspondente também precisa existir no cache.
+
+Use `SESSION_SECURE_COOKIE=true` somente quando a aplicação estiver publicada
+em HTTPS. Em desenvolvimento HTTP local, mantenha essa opção ausente ou como
+`false`.
 
 Nunca envie o `.env`, `SSO_CLIENT_SECRET` ou `SSO_WEBHOOK_SECRET` para o Git.
 Não use `SSO_VERIFY_SSL=false` em produção.
@@ -291,6 +304,8 @@ tail -n 100 storage/logs/laravel.log
 - [ ] O usuário local possui `codpes`, nome e e-mail esperados.
 - [ ] O logout local funciona.
 - [ ] O webhook de logout usa HTTPS e o segredo correto.
+- [ ] Produção HTTPS usa `SESSION_SECURE_COOKIE=true`.
+- [ ] Todas as instâncias usam o mesmo cache compartilhado.
 
 ## Problemas mais comuns
 
@@ -303,7 +318,11 @@ Não desative a validação de `state`. Confira:
 - se o callback ocorreu dentro de `SSO_OAUTH_STATE_TTL`;
 - se rotas manuais de login/callback usam `block(30, 30)`;
 - se sessão e cache não foram apagados durante o login;
-- se uma URL antiga de callback foi recarregada.
+- se uma URL antiga de callback foi recarregada;
+- se o cache foi limpo entre o login e o callback;
+- se todas as instâncias usam o mesmo armazenamento de cache;
+- se o cookie `sso_oauth_state_*` foi enviado no callback;
+- se produção HTTPS usa `SESSION_SECURE_COOKIE=true`.
 
 Inicie um novo acesso pela rota protegida ou por `/login`; não reutilize uma
 URL antiga de `/sso/callback`.

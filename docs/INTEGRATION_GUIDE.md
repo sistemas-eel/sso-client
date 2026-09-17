@@ -44,25 +44,42 @@ SSO_SYNC_PERMISSIONS=true
 
 # SSL Configuration
 SSO_VERIFY_SSL=true
+# Em produção HTTPS
+SESSION_SECURE_COOKIE=true
 # SSO_CA_BUNDLE=/path/to/ca-bundle.crt  # Opcional
 ```
 
-`SSO_OAUTH_STATE_TTL` define por quantos segundos cada `state` de uma tentativa
-Laravel permanece válido. `SSO_OAUTH_STATE_MAX_PENDING` limita quantas
-tentativas podem coexistir na mesma sessão, permitindo autenticações iniciadas
-por abas diferentes sem que uma substitua a outra. Cada callback consome
-somente seu próprio `state` e não remove tentativas válidas quando recebe um
-valor incorreto. Essas opções não alteram o scaffold para PHP legado.
+`SSO_OAUTH_STATE_TTL` define por quantos segundos cada fluxo permanece válido.
+`SSO_OAUTH_STATE_MAX_PENDING` limita quantas tentativas são mantidas pela
+sessão para compatibilidade e controle de fluxos sobrepostos.
+
+Na integração Laravel, cada fluxo novo é registrado no cache e vinculado a um
+cookie HTTP-only exclusivo, derivado do hash do `state`. O cache armazena
+somente o hash do vínculo, o horário de emissão e o destino pretendido. O valor
+secreto do vínculo permanece no navegador.
+
+No callback, cache e cookie precisam corresponder. O registro é consumido sob
+lock pelo próprio `state`, impedindo reutilização mesmo quando callbacks chegam
+com IDs de sessão diferentes. Estados das versões anteriores continuam
+aceitos pela sessão durante a atualização.
+
+O destino pretendido também pertence ao fluxo. Destinos relativos ou absolutos
+da mesma origem são aceitos; destinos externos são descartados. Essas mudanças
+não alteram o scaffold para PHP legado.
 
 `SSO_OAUTH_ROUTE_LOCK_SECONDS` define por quanto tempo o lock da sessão pode
 permanecer adquirido. `SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS` define quanto uma
 requisição aguarda esse lock.
 
-As rotas automáticas de login e callback usam esse bloqueio para serializar
-requisições da mesma sessão. Isso impede que várias abas restauradas
-simultaneamente leiam e sobrescrevam a mesma coleção de estados pendentes. O
-driver de cache do Laravel precisa oferecer locks atômicos; `database` e
-`redis` são opções usuais.
+As rotas automáticas de login e callback também bloqueiam requisições
+concorrentes da mesma sessão. O bloqueio da rota evita sobrescritas durante a
+emissão, enquanto o lock específico do `state` garante consumo único após uma
+regeneração da sessão.
+
+O driver de cache precisa armazenar os fluxos pendentes e oferecer locks
+atômicos. `database` e `redis` são opções usuais. Em aplicações com múltiplas
+instâncias, todas devem usar o mesmo cache compartilhado. Limpar o cache
+invalida autenticações ainda em andamento.
 
 ---
 
@@ -640,20 +657,27 @@ $cache->forget('sso_global_logout_12345');
 - a sessão da aplicação não foi preservada entre login e callback;
 - o callback chegou depois do TTL configurado;
 - o `state` é desconhecido, malformado ou já foi utilizado;
-- uma aba antiga restaurou ou repetiu uma URL de callback.
+- uma aba antiga restaurou ou repetiu uma URL de callback;
 - rotas de login ou callback sobrescritas manualmente sem bloqueio de sessão;
 - requisições realmente concorrentes da mesma sessão sobrescreveram estados
-  pendentes em uma versão antiga do pacote.
+  pendentes em uma versão antiga do pacote;
+- o cache da aplicação foi limpo entre login e callback;
+- as instâncias da aplicação não compartilham o mesmo cache;
+- o cookie de vínculo do fluxo não retornou ao callback;
+- em produção HTTPS, confira `SESSION_SECURE_COOKIE=true`, domínio, caminho e
+  `SameSite` dos cookies.
 
 **Verificações**:
 
 1. confirme cookie, domínio, caminho, HTTPS e armazenamento da sessão;
 2. confira `SSO_OAUTH_STATE_TTL` e o tempo decorrido durante o login;
-3. inicie um novo login em vez de recarregar a URL antiga do callback;
-4. não desabilite a validação de `state`, pois ela protege o callback contra
+3. confirme que todas as instâncias usam o mesmo cache compartilhado;
+4. verifique se o cache não foi limpo durante o fluxo;
+5. em produção HTTPS, confirme `SESSION_SECURE_COOKIE=true`;
+6. confira se rotas manuais de login e callback usam `->block(30, 30)`;
+7. inicie um novo login em vez de recarregar uma URL antiga do callback;
+8. não desabilite a validação de `state`, pois ela protege o callback contra
    CSRF.
-5. confira se rotas manuais de login e callback usam `->block(30, 30)`;
-6. use uma versão do pacote que proteja as rotas OAuth contra concorrência.
 
 ### Erro: "SSL certificate problem"
 

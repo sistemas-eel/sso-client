@@ -63,13 +63,26 @@ SSO_OAUTH_ROUTE_LOCK_WAIT_SECONDS=30
 SSO_WEBHOOK_SECRET=seu_webhook_secret
 SSO_VERIFY_SSL=true
 SSO_SYNC_PERMISSIONS=true
+# Em produção HTTPS
+SESSION_SECURE_COOKIE=true
 ```
 
 Na integração Laravel, cada tentativa de login mantém seu próprio `state`
 pendente. Por padrão, um `state` vale por 600 segundos e a sessão conserva no
-máximo dez tentativas simultâneas. O callback consome somente o valor que foi
-validado; estados desconhecidos, expirados, malformados ou reutilizados são
-recusados. Ajuste os limites apenas se o fluxo da aplicação realmente exigir.
+máximo dez tentativas simultâneas.
+
+Cada fluxo novo também é armazenado temporariamente no cache e vinculado a um
+cookie HTTP-only exclusivo. Assim, o callback continua válido quando outro
+login regenera a sessão do Laravel, mas não pode ser usado por um navegador que
+não possua o vínculo correspondente. Cada estado é consumido uma única vez.
+
+O destino pretendido é guardado junto ao fluxo. Abas sobrepostas podem retornar
+às suas próprias páginas, em vez de disputarem o único `url.intended` da
+sessão. Destinos externos à aplicação são descartados.
+
+Durante a atualização, estados criados pelas versões anteriores continuam
+aceitos pela sessão. Estados desconhecidos, expirados, malformados ou
+reutilizados são recusados.
 
 As rotas automáticas de login e callback bloqueiam requisições concorrentes da
 mesma sessão. Isso evita que várias abas restauradas simultaneamente leiam o
@@ -77,8 +90,13 @@ mesmo estado da sessão e sobrescrevam os `state` pendentes umas das outras. Por
 padrão, o bloqueio pode durar até 30 segundos e aguarda até 30 segundos para ser
 adquirido.
 
-O armazenamento de cache configurado no Laravel precisa oferecer locks
-atômicos. Os drivers usuais `database` e `redis` atendem esse requisito.
+O armazenamento de cache configurado no Laravel guarda os fluxos pendentes e
+precisa oferecer locks atômicos. Os drivers `database` e `redis` atendem esse
+requisito. Em instalações com múltiplos servidores, use um cache compartilhado
+por todas as instâncias.
+
+Limpar o cache enquanto existirem autenticações em andamento invalida esses
+fluxos; o usuário deverá iniciar o login novamente.
 
 #### 3. Rotas Disponíveis
 
