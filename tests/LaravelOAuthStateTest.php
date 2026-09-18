@@ -269,7 +269,7 @@ class LaravelOAuthStateTest extends TestCase
         ]))->assertRedirect('/');
     }
 
-    public function test_callback_preserva_estado_e_destino_apos_troca_da_sessao(): void
+    public function test_callback_preserva_destino_informado_no_login_apos_troca_da_sessao(): void
     {
         $mock = Mockery::mock(SSOClient::class);
 
@@ -299,11 +299,11 @@ class LaravelOAuthStateTest extends TestCase
 
         $this->app->instance(SSOClient::class, $mock);
 
-        $this->withSession([
-            'url.intended' => '/administracao/tipos-chamados/1/versoes/1',
-        ]);
+        $destino = '/administracao/tipos-chamados/1/versoes/1';
 
-        $respostaLogin = $this->get('/login');
+        $respostaLogin = $this->get('/login?'.http_build_query([
+            'intended' => $destino,
+        ]));
 
         $state = $this->stateDoRedirecionamento(
             $respostaLogin->headers->get('Location'),
@@ -323,9 +323,7 @@ class LaravelOAuthStateTest extends TestCase
         )->get('/sso/callback?'.http_build_query([
             'state' => $state,
             'code' => 'codigo-valido',
-        ]))->assertRedirect(
-            '/administracao/tipos-chamados/1/versoes/1',
-        );
+        ]))->assertRedirect($destino);
     }
 
     public function test_rejeita_estado_cacheado_sem_cookie_de_vinculo(): void
@@ -639,11 +637,9 @@ class LaravelOAuthStateTest extends TestCase
 
         $this->app->instance(SSOClient::class, $mock);
 
-        $this->withSession([
-            'url.intended' => 'https://dominio-externo.example/phishing',
-        ]);
-
-        $respostaLogin = $this->get('/login');
+        $respostaLogin = $this->get('/login?'.http_build_query([
+            'intended' => 'https://dominio-externo.example/phishing',
+        ]));
 
         $state = $this->stateDoRedirecionamento(
             $respostaLogin->headers->get('Location'),
@@ -704,11 +700,9 @@ class LaravelOAuthStateTest extends TestCase
 
         $this->app->instance(SSOClient::class, $mock);
 
-        $this->withSession([
-            'url.intended' => $destino,
-        ]);
-
-        $respostaLogin = $this->get('/login');
+        $respostaLogin = $this->get('/login?'.http_build_query([
+            'intended' => $destino,
+        ]));
 
         $state = $this->stateDoRedirecionamento(
             $respostaLogin->headers->get('Location'),

@@ -4,7 +4,29 @@ Todos os recursos notáveis desta biblioteca serão documentados neste arquivo.
 
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/), e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+> Antes de atualizar, consulte o
+> [Guia de atualização](docs/UPGRADE.md). Ele reúne as ações necessárias entre
+> cada versão, inclusive alterações no `.env`, na configuração e no código da
+> aplicação cliente.
+
 ## [Unreleased]
+
+## [1.0.0-beta.6] - 2026-09-18
+
+### Adicionado
+
+- Suporte ao parâmetro `intended` na rota de login para associar o destino diretamente ao fluxo OAuth daquela aba.
+- Guia cumulativo de atualização com as ações necessárias entre cada versão.
+
+### Corrigido
+
+- Preserva o destino original quando outra aba regenera a sessão entre o acesso à página protegida e a abertura da rota de login.
+- Mantém a validação de origem do destino, descartando URLs externas à aplicação.
+
+### Atualização necessária
+
+- Aplicações Laravel devem incluir o destino da requisição no redirecionamento de visitantes para a rota `login`.
+- Consulte a seção [`1.0.0-beta.5` para `1.0.0-beta.6`](docs/UPGRADE.md#de-100-beta5-para-100-beta6) do guia de atualização.
 
 ## [1.0.0-beta.5] - 2026-09-17
 

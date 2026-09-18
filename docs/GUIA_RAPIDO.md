@@ -144,7 +144,7 @@ Para usar outro model, configure, por exemplo:
 SSO_USER_MODEL=App\Models\Usuario
 ```
 
-## 5. Registre o middleware de sessão
+## 5. Registre o middleware e preserve o destino
 
 O middleware `CheckSSOSession` permite que a aplicação reconheça um logout
 global ou uma sessão revogada no Portal.
@@ -156,9 +156,16 @@ configuração já existente:
 
 ```php
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use SistemasEel\SSOClient\Laravel\Http\Middleware\CheckSSOSession;
 
 ->withMiddleware(function (Middleware $middleware): void {
+    $middleware->redirectGuestsTo(
+        fn (Request $request) => route('login', [
+            'intended' => $request->fullUrl(),
+        ]),
+    );
+
     $middleware->appendToGroup('web', [
         CheckSSOSession::class,
     ]);
@@ -177,6 +184,32 @@ protected $middlewareGroups = [
     ],
 ];
 ```
+
+Nessas versões, sobrescreva também o método `unauthenticated()` de
+`app/Exceptions/Handler.php`:
+
+```php
+use Illuminate\Auth\AuthenticationException;
+
+protected function unauthenticated(
+    $request,
+    AuthenticationException $exception
+) {
+    if ($request->expectsJson()) {
+        return response()->json([
+            'message' => $exception->getMessage(),
+        ], 401);
+    }
+
+    return redirect()->guest(route('login', [
+        'intended' => $request->fullUrl(),
+    ]));
+}
+```
+
+O parâmetro `intended` associa o destino à tentativa de login daquela aba. O
+pacote aceita apenas caminhos relativos ou URLs absolutas da mesma origem da
+aplicação.
 
 Depois, execute novamente:
 

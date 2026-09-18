@@ -139,7 +139,7 @@ A rota `sso.callback` permanece registrada automaticamente pelo pacote, já com
 bloqueio. Se a aplicação também precisar sobrescrevê-la, preserve
 `->block(30, 30)` na definição manual.
 
-### 4. Middleware de Sessão (Obrigatório em Produção)
+### 4. Middleware de sessão e destino do login
 
 Adicione o middleware `CheckSSOSession` ao grupo `web` para validar sessões e detectar logout global. Em aplicações Laravel com sessão web, este middleware deve ser usado em produção para que eventos de logout global ou revogação encerrem a sessão local do usuário. Sem ele, o login OAuth continua funcionando, mas a aplicação cliente não reage ao logout global recebido pelo webhook. O local dessa configuração depende da versão do Laravel.
 
@@ -156,18 +156,52 @@ protected $middlewareGroups = [
 ];
 ```
 
+Nessas versões, sobrescreva também o método `unauthenticated()` de
+`app/Exceptions/Handler.php`:
+
+```php
+use Illuminate\Auth\AuthenticationException;
+
+protected function unauthenticated(
+    $request,
+    AuthenticationException $exception
+) {
+    if ($request->expectsJson()) {
+        return response()->json([
+            'message' => $exception->getMessage(),
+        ], 401);
+    }
+
+    return redirect()->guest(route('login', [
+        'intended' => $request->fullUrl(),
+    ]));
+}
+```
+
 Em Laravel 11 ou superior, o esqueleto padrão não possui mais `app/Http/Kernel.php`. Nesse caso, registre o middleware em `bootstrap/app.php`:
 
 ```php
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use SistemasEel\SSOClient\Laravel\Http\Middleware\CheckSSOSession;
 
 ->withMiddleware(function (Middleware $middleware): void {
+    $middleware->redirectGuestsTo(
+        fn (Request $request) => route('login', [
+            'intended' => $request->fullUrl(),
+        ]),
+    );
+
     $middleware->appendToGroup('web', [
         CheckSSOSession::class,
     ]);
 })
 ```
+
+O parâmetro `intended` associa o destino à tentativa de login daquela aba. O
+pacote valida esse valor e aceita somente caminhos relativos ou URLs absolutas
+da mesma origem da aplicação. Se ele não estiver presente, o pacote mantém a
+compatibilidade com `url.intended` da sessão.
 
 Após alterar a configuração de middleware, limpe os caches da aplicação:
 

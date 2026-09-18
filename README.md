@@ -14,6 +14,11 @@ Cliente OAuth2 para integração com o Portal de Sistemas. Funciona com **Larave
 Para detalhes avançados, PHP legado e referência completa, consulte o
 [Guia de integração](docs/INTEGRATION_GUIDE.md).
 
+> **Atualizando uma instalação existente?** Consulte o
+> [Guia de atualização](docs/UPGRADE.md) antes de alterar a versão do pacote.
+> Ele lista as mudanças necessárias no `.env`, na configuração e no código de
+> cada versão.
+
 ## Funcionalidades
 
 - **Autenticação OAuth2** - Authorization Code Flow completo
@@ -167,14 +172,28 @@ Em Laravel 11 ou superior, o esqueleto padrão não possui mais `app/Http/Kernel
 
 ```php
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use SistemasEel\SSOClient\Laravel\Http\Middleware\CheckSSOSession;
 
 ->withMiddleware(function (Middleware $middleware): void {
+    $middleware->redirectGuestsTo(
+        fn (Request $request) => route('login', [
+            'intended' => $request->fullUrl(),
+        ]),
+    );
+
     $middleware->appendToGroup('web', [
         CheckSSOSession::class,
     ]);
 })
 ```
+
+Em Laravel 8, 9 ou 10, também é necessário personalizar o tratamento de
+visitantes não autenticados. Consulte a seção correspondente do
+[guia rápido](docs/GUIA_RAPIDO.md#5-registre-o-middleware-e-preserve-o-destino).
+
+O parâmetro `intended` preserva separadamente o destino de cada tentativa de
+login. O pacote valida esse valor e descarta destinos externos à aplicação.
 
 Após alterar a configuração de middleware, limpe os caches da aplicação:
 
@@ -414,6 +433,8 @@ echo "Bem-vindo, {$userName}";
 
 Para guias detalhados de integração, consulte:
 
+- [Guia rápido de integração](docs/GUIA_RAPIDO.md)
+- [Guia de atualização](docs/UPGRADE.md)
 - [Guia de Integração Completo](docs/INTEGRATION_GUIDE.md)
 - [Exemplos para PHP Legado](examples/legacy-php/)
 

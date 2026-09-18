@@ -47,7 +47,7 @@ class OAuthStateStore
             [
                 'binding_hash' => hash('sha256', $binding),
                 'issued_at' => $issuedAt,
-                'intended_url' => $this->intendedUrlFromSession(),
+                'intended_url' => $this->intendedUrlForNewFlow(),
             ],
             now()->addSeconds($this->ttlSeconds()),
         );
@@ -256,6 +256,13 @@ class OAuthStateStore
             $this->cookiePath(),
             $this->cookieDomain(),
         ));
+    }
+
+    private function intendedUrlForNewFlow(): ?string
+    {
+        return $this->validIntendedUrl(
+            request()->query('intended'),
+        ) ?? $this->intendedUrlFromSession();
     }
 
     private function intendedUrlFromSession(): ?string
